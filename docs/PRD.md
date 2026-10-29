@@ -135,3 +135,4 @@ flowchart TD
 * [ ] **v1.1.0:** Fitur kustomisasi kostum & pakaian karakter maskot langsung dari Dashboard.
 * [ ] **v1.2.0:** Integrasi kontrol smart-home lokal (Home Assistant API via HTTP/MQTT).
 * [ ] **v1.3.0:** Mode percakapan suara interaktif bolak-balik tanpa henti (*Continuous Conversational Duplex*).
+
