@@ -51,6 +51,7 @@ export const FloatingOrb: React.FC = () => {
   const mouseLeaveTimerRef = useRef<number | null>(null)
   const lastSeenSongKeyRef = useRef<string>('')
   const manuallySlidDownSongRef = useRef<string>('')
+  const pausedMusicForSummonRef = useRef<boolean>(false)
   const dragRef = useRef<{ dragging: boolean; lastX: number }>({
     dragging: false,
     lastX: 0
@@ -114,6 +115,13 @@ export const FloatingOrb: React.FC = () => {
     (hideImmediately = false) => {
       clearAwakeTimeout()
       touchActivity()
+
+      // Jika musik sebelumnya di-pause khusus karena dipanggil ("Woii Dann") dan pengguna tidak mengganti musik:
+      if (pausedMusicForSummonRef.current) {
+        pausedMusicForSummonRef.current = false
+        void window.dannAPI.controlMedia('play')
+      }
+
       const s = settingsRef.current
       if (s?.alwaysListen) {
         recorderRef.current?.setSilenceTimeout(600)
@@ -145,6 +153,19 @@ export const FloatingOrb: React.FC = () => {
       stopSpeaking()
       playWakeChime()
 
+      // Saat musik sedang aktif dan pengguna memanggil "Woii Dann",
+      // otomatis JEDA musiknya agar Dann bisa merespon jernih dan mendengar perintah user tanpa kebisingan!
+      let finalGreeting = greetingBubble
+      if (mediaActiveRef.current) {
+        pausedMusicForSummonRef.current = true
+        void window.dannAPI.controlMedia('pause')
+        if (speakGreeting) {
+          finalGreeting = 'Iya! Musiknya aku pause dulu ya. Mau dibantu apa nih?'
+        }
+      } else {
+        pausedMusicForSummonRef.current = false
+      }
+
       const startListeningWindow = () => {
         touchActivity()
         recorderRef.current?.setSilenceTimeout(820)
@@ -153,7 +174,7 @@ export const FloatingOrb: React.FC = () => {
         syncStatus('awake')
         showBubble(
           `${settingsRef.current?.assistantName || 'Dann'} Mendengarkan`,
-          greetingBubble,
+          finalGreeting,
           10000
         )
 
@@ -168,9 +189,9 @@ export const FloatingOrb: React.FC = () => {
       if (speakGreeting && settingsRef.current?.ttsEnabled) {
         recorderRef.current?.setPaused(true)
         syncStatus('speaking')
-        showBubble(settingsRef.current?.assistantName || 'Dann', greetingBubble, 8000)
+        showBubble(settingsRef.current?.assistantName || 'Dann', finalGreeting, 8000)
         speakText(
-          greetingBubble,
+          finalGreeting,
           settingsRef.current.ttsRate || 1.05,
           undefined,
           () => startListeningWindow()
@@ -191,6 +212,15 @@ export const FloatingOrb: React.FC = () => {
       recorderRef.current?.setPaused(true)
       syncStatus('thinking', commandText)
       showBubble('Kamu', `"${commandText}"`, 0)
+
+      // Jika user memberikan perintah musik eksplisit, jangan auto-resume musik lama
+      if (
+        /^(?:pause|paus|jeda|stop|berhenti|play|plei|resume|unpause|lanjut|lanjutkan|next|neks|skip|prev|previous|ganti|putar|setel|mainkan)/i.test(
+          commandText.trim()
+        )
+      ) {
+        pausedMusicForSummonRef.current = false
+      }
 
       try {
         const res = await window.dannAPI.processCommand(commandText)
