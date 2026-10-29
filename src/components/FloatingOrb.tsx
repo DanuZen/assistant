@@ -286,6 +286,26 @@ export const FloatingOrb: React.FC = () => {
       }
 
       if (currentMode === 'standby') {
+        const trimmed = text.trim()
+
+        // 1. Direct Instant Media & Dismiss Commands (Bisa diucapkan langsung TANPA kata "Woii Dann"!)
+        const isDirectMediaOrDismiss =
+          /^(?:pause|paus|pos|jeda|stop|berhenti|play|plei|resume|unpause|lanjut|lanjutkan|next|neks|nek|skip|previous|preverius|previus|privius|prev|pref)(?:\s+(?:musik|lagu|videonya|lagunya|musiknya))?$/i.test(
+            trimmed
+          ) ||
+          /^(?:lagu|musik)\s+(?:selanjutnya|berikutnya|sebelumnya)$/i.test(trimmed) ||
+          /^(?:ganti|lewati|balik|ulang)\s+lagu$/i.test(trimmed) ||
+          /^(?:pergi(?:\s+(?:dulu|sana|aja))?|sana\s+pergi|hus|hush|syuh|minggir(?:\s+dulu)?|cabut(?:\s+dulu)?|ngumpet(?:\s+dulu)?|turun(?:\s+dulu)?|dadah|bye)$/i.test(
+            trimmed
+          )
+
+        if (isDirectMediaOrDismiss) {
+          touchActivity()
+          summonAwake(undefined, false)
+          await executeCommandText(trimmed)
+          return
+        }
+
         const match = matchWakeWord(text, s.wakeWord, s.wakeAliases)
         if (!match.matched) {
           return

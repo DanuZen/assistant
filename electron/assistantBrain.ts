@@ -143,7 +143,7 @@ export class AssistantBrain {
 
     // 1c. Kontrol Pemutar Musik (Pause, Play/Lanjutkan, Next, Previous)
     if (
-      /^(?:jeda(?:\s+(?:musik|lagu))?|pause(?:\s+(?:musik|lagu))?|paus|hentikan\s+(?:musik|lagu)|stop\s+(?:musik|lagu)|matikan\s+(?:musik|lagu))$/.test(
+      /^(?:jeda(?:\s+(?:musik|lagu))?|pause(?:\s+(?:musik|lagu))?|paus|pos|stop(?:\s+(?:musik|lagu))?|berhenti(?:\s+(?:musik|lagu))?|hentikan(?:\s+(?:musik|lagu))?|matikan\s+(?:musik|lagu))$/.test(
         lower
       )
     ) {
@@ -155,7 +155,7 @@ export class AssistantBrain {
     }
 
     if (
-      /^(?:lanjutkan(?:\s+(?:musik|lagu))?|lanjut\s+(?:musik|lagu)|play(?:\s+(?:musik|lagu))?|plei|resume|unpause|putar\s+lagi|mainkan\s+lagi)$/.test(
+      /^(?:lanjut(?:\s+(?:musik|lagu))?|lanjutkan(?:\s+(?:musik|lagu))?|play(?:\s+(?:musik|lagu))?|plei|resume|unpause|putar\s+lagi|puter\s+lagi|mainkan\s+lagi)$/.test(
         lower
       )
     ) {
@@ -167,7 +167,7 @@ export class AssistantBrain {
     }
 
     if (
-      /^(?:lagu\s+(?:selanjutnya|berikutnya)|musik\s+(?:selanjutnya|berikutnya)|next(?:\s+(?:lagu|musik))?|neks|skip(?:\s+lagu)?|ganti\s+lagu|lewati\s+lagu)$/.test(
+      /^(?:lagu\s+(?:selanjutnya|berikutnya)|musik\s+(?:selanjutnya|berikutnya)|next(?:\s+(?:lagu|musik))?|neks|nek|skip(?:\s+(?:lagu|musik))?|ganti\s+lagu|lewati\s+lagu)$/.test(
         lower
       )
     ) {
@@ -179,7 +179,7 @@ export class AssistantBrain {
     }
 
     if (
-      /^(?:lagu\s+sebelumnya|musik\s+sebelumnya|previous(?:\s+(?:lagu|musik))?|preverius|previus|privius|prev|balik\s+lagu|mundur\s+lagu|ulang\s+lagu|kembali\s+ke\s+lagu\s+sebelumnya)$/.test(
+      /^(?:lagu\s+sebelumnya|musik\s+sebelumnya|previous(?:\s+(?:lagu|musik))?|preverius|previus|privius|prev|pref|balik\s+lagu|mundur\s+lagu|ulang\s+lagu|kembali\s+ke\s+lagu\s+sebelumnya)$/.test(
         lower
       )
     ) {

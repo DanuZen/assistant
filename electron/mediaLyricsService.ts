@@ -472,16 +472,48 @@ function Find-BestSession($manager) {
   return $best
 }
 
+function Get-ActiveMediaSession($manager) {
+  try {
+    $cur = $manager.GetCurrentSession()
+    if ($null -ne $cur) {
+      $info = $cur.GetPlaybackInfo()
+      if ($null -ne $info) {
+        $st = $info.PlaybackStatus.ToString()
+        if ($st -eq 'Playing' -or $st -eq 'Paused') {
+          return $cur
+        }
+      }
+    }
+  } catch {}
+  return Find-BestSession $manager
+}
+
 function Invoke-MediaAction($manager, [string]$act) {
-  $target = Find-BestSession $manager
+  $target = Get-ActiveMediaSession $manager
   $handled = $false
   if ($null -ne $target) {
     switch ($act) {
-      'pause'    { $handled = [bool](Await-WinRT ($target.TryPauseAsync()) ([bool])) }
-      'play'     { $handled = [bool](Await-WinRT ($target.TryPlayAsync()) ([bool])) }
-      'toggle'   { $handled = [bool](Await-WinRT ($target.TryTogglePlayPauseAsync()) ([bool])) }
-      'next'     { $handled = [bool](Await-WinRT ($target.TrySkipNextAsync()) ([bool])) }
-      'previous' { $handled = [bool](Await-WinRT ($target.TrySkipPreviousAsync()) ([bool])) }
+      'pause' {
+        $handled = [bool](Await-WinRT ($target.TryPauseAsync()) ([bool]))
+        if (-not $handled) {
+          $handled = [bool](Await-WinRT ($target.TryTogglePlayPauseAsync()) ([bool]))
+        }
+      }
+      'play' {
+        $handled = [bool](Await-WinRT ($target.TryPlayAsync()) ([bool]))
+        if (-not $handled) {
+          $handled = [bool](Await-WinRT ($target.TryTogglePlayPauseAsync()) ([bool]))
+        }
+      }
+      'toggle' {
+        $handled = [bool](Await-WinRT ($target.TryTogglePlayPauseAsync()) ([bool]))
+      }
+      'next' {
+        $handled = [bool](Await-WinRT ($target.TrySkipNextAsync()) ([bool]))
+      }
+      'previous' {
+        $handled = [bool](Await-WinRT ($target.TrySkipPreviousAsync()) ([bool]))
+      }
     }
   }
   if (-not $handled) {
@@ -523,7 +555,7 @@ while ($true) {
         else { $winHint = '' }
       }
 
-      $chosen = Find-BestSession $mgr
+      $chosen = Get-ActiveMediaSession $mgr
       if ($null -eq $chosen) {
         Write-Output 'SMTC:{"active":false,"hasSession":false}'
       } else {
