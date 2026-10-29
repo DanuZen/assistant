@@ -131,23 +131,23 @@ export class VoiceActivityRecorder {
         this.callbacks.onLevel(Math.min(1, vadRms * 18))
 
         const now = performance.now()
-        const startMultiplier = this.isMusicPlaying ? 1.65 : 1.85
+        const startMultiplier = this.isMusicPlaying ? 1.25 : 1.65
         const startGate = Math.max(
-          this.threshold * 0.9,
-          Math.min(0.068, this.ambientFloor * startMultiplier)
+          this.threshold * 0.82,
+          Math.min(0.026, this.ambientFloor * startMultiplier)
         )
         const baseStopGate = Math.max(
-          this.threshold * 0.68,
-          Math.min(0.05, this.ambientFloor * 1.25)
+          this.threshold * 0.6,
+          Math.min(0.02, this.ambientFloor * 1.15)
         )
 
         if (!this.isSpeaking) {
           // Track ambient room / residual music baseline smoothly
-          if (vadRms < startGate * 1.25) {
-            this.ambientFloor = this.ambientFloor * 0.92 + vadRms * 0.08
+          if (vadRms < startGate * 1.05) {
+            this.ambientFloor = this.ambientFloor * 0.94 + vadRms * 0.06
           } else if (this.isMusicPlaying) {
-            // Very slow upward drift if music volume was just turned up
-            this.ambientFloor = Math.min(0.042, this.ambientFloor * 0.985 + vadRms * 0.015)
+            // Keep ambient floor bounded so it NEVER locks out speech!
+            this.ambientFloor = Math.min(0.016, this.ambientFloor * 0.98 + vadRms * 0.02)
           }
 
           this.preRollChunks.push(chunk)
@@ -169,17 +169,17 @@ export class VoiceActivityRecorder {
             this.utterancePeakRms = vadRms
           }
 
-          // Speech-over-music dropoff: when voice stops and level drops back below 36% of vocal peak,
+          // Speech-over-music dropoff: when voice stops and level drops back below 38% of vocal peak,
           // close the utterance cleanly even if background music is still playing!
           const speechDropGate = this.isMusicPlaying
-            ? Math.min(0.058, this.utterancePeakRms * 0.36)
+            ? Math.min(0.035, this.utterancePeakRms * 0.38)
             : 0
           const effectiveStopGate = Math.max(baseStopGate, speechDropGate)
           const effectiveSilenceMs = this.isMusicPlaying
-            ? Math.min(this.silenceTimeoutMs, 580)
+            ? Math.min(this.silenceTimeoutMs, 650)
             : this.silenceTimeoutMs
           const effectiveMaxMs =
-            this.isMusicPlaying && this.maxUtteranceMs <= 5000 ? 3300 : this.maxUtteranceMs
+            this.isMusicPlaying && this.maxUtteranceMs <= 5000 ? 3600 : this.maxUtteranceMs
 
           if (vadRms < effectiveStopGate) {
             if (this.silenceStart === 0) {

@@ -478,12 +478,10 @@ export class SpeechService {
   }
 
   private cleanTranscript(raw: string): string {
-    // Reject pure singing/music-note transcriptions picked up from speakers
-    if (/[♪♫♬♩]/.test(raw)) {
-      return ''
-    }
+    // Strip pure musical notes from Whisper output without discarding the user's spoken words!
+    const strippedNotes = raw.replace(/[♪♫♬♩]/g, ' ')
 
-    const trimmed = raw
+    const trimmed = strippedNotes
       .replace(/\[.*?\]/g, '')
       .replace(/\(.*?\)/g, '')
       .replace(/\s+/g, ' ')
