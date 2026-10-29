@@ -130,7 +130,13 @@ const CANONICAL_SENTENCES: CanonicalSentenceEntry[] = [
       'tanggal berapa',
       'tanggal berapa sekarang',
       'hari ini tanggal berapa',
-      'sekarang tanggal berapa'
+      'sekarang tanggal berapa',
+      'bisa tanggal apa',
+      'tanggal apa',
+      'tanggal apa sekarang',
+      'tanggal hari ini',
+      'lihat tanggal berapa',
+      'lihat tanggal apa'
     ]
   },
   {
@@ -1380,9 +1386,63 @@ function cleanMediaQueryConnectors(rawQuery: string): string {
 function tryReconstructMediaOpenWithQuery(clause: string): NormalizedSentenceResult | null {
   const clean = clause
     .replace(/[?!.,;:]+/g, ' ')
-    .replace(/^(?:tolong|coba|mohon)\s+/i, '')
+    .replace(/^(?:terus|lalu|dan|coba|tolong|mohon|eh|bisa|mau|pengen|tolongin)\s+/i, '')
     .replace(/\s+/g, ' ')
     .trim()
+
+  // 0a. Platform-first Spotify pattern: "potifai putar lagu hampa", "spotify denny caknan"
+  const spDirect = clean.match(
+    /^(?:spotify|sopotify|potifai|potify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi|potipai)\s+(?:tolong\s+)?(?:putar|puter|putarkan|setel|stel|mainkan|buka|cari|nyalakan)?\s*(?:lagu|musik|musiknya)?\s*(.+)$/i
+  )
+  if (spDirect?.[1]) {
+    const q = cleanMediaQueryConnectors(spDirect[1])
+    if (q.length >= 2 && !FILLER_TAIL_ONLY.test(q)) {
+      const sentence = `Putar ${q} di Spotify`
+      return {
+        original: clause,
+        normalized: sentence,
+        changed: sentence.toLowerCase() !== clause.trim().toLowerCase(),
+        confidence: 0.94,
+        rule: 'open-spotify-platform-first'
+      }
+    }
+  }
+
+  // 0b. Platform-first YouTube Music pattern: "yt music runtuh"
+  const ytmDirect = clean.match(
+    /^(?:youtube\s+music|yt\s+music|youtube\s+musik|yutub\s+musik|yutup\s+musik|utub\s+musik)\s+(?:tolong\s+)?(?:putar|puter|putarkan|setel|stel|mainkan|buka|cari|nyalakan)?\s*(?:lagu|musik|musiknya)?\s*(.+)$/i
+  )
+  if (ytmDirect?.[1]) {
+    const q = cleanMediaQueryConnectors(ytmDirect[1])
+    if (q.length >= 2 && !FILLER_TAIL_ONLY.test(q)) {
+      const sentence = `Putar ${q} di YouTube Music`
+      return {
+        original: clause,
+        normalized: sentence,
+        changed: sentence.toLowerCase() !== clause.trim().toLowerCase(),
+        confidence: 0.94,
+        rule: 'open-ytmusic-platform-first'
+      }
+    }
+  }
+
+  // 0c. Platform-first YouTube pattern: "youtube putar lesti kejora", "yutub denny caknan"
+  const ytDirect = clean.match(
+    /^(?:youtube|yutub|yutup|yutuk|utub|utuk|yu\s+tub|you\s+tube|yt)\s+(?:tolong\s+)?(?:putar|puter|putarkan|setel|stel|mainkan|buka|cari|nyalakan)?\s*(?:lagu|musik|musiknya|video|videonya)?\s*(.+)$/i
+  )
+  if (ytDirect?.[1]) {
+    const q = cleanMediaQueryConnectors(ytDirect[1])
+    if (q.length >= 2 && !FILLER_TAIL_ONLY.test(q)) {
+      const sentence = `Putar ${q} di YouTube`
+      return {
+        original: clause,
+        normalized: sentence,
+        changed: sentence.toLowerCase() !== clause.trim().toLowerCase(),
+        confidence: 0.94,
+        rule: 'open-youtube-platform-first'
+      }
+    }
+  }
 
   const openVerbPrefix =
     /^(?:buka|bukar|bukam|bukas|bukak|bukai|bukain|bukakan|bukanya|jalankan|nyalakan|setel|stel|putar|puter|putarkan|mainkan|open)\s+/i
@@ -1428,7 +1488,7 @@ function tryReconstructMediaOpenWithQuery(clause: string): NormalizedSentenceRes
 
   // 3. Spotify + judul lagu/musik
   const spMatch = afterVerb.match(
-    /^(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi)\s+(.+)$/i
+    /^(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi|potifai|potify|potipai)\s+(.+)$/i
   )
   if (spMatch?.[1]) {
     const q = cleanMediaQueryConnectors(spMatch[1])
@@ -1448,11 +1508,14 @@ function tryReconstructMediaOpenWithQuery(clause: string): NormalizedSentenceRes
 }
 
 function tryReconstructSearchOrPlay(clause: string): NormalizedSentenceResult | null {
-  const clean = clause.replace(/[?!.]+$/g, '').trim()
+  const clean = clause
+    .replace(/[?!.,;:]+$/g, '')
+    .replace(/^(?:terus|lalu|dan|coba|tolong|mohon|eh|bisa|mau|pengen|tolongin)\s+/i, '')
+    .trim()
 
-  // "[Putar/Puter/Setel/Buka video] [lagu ...] [di spotify / youtube music / youtube]"
+  // "[Putar/Puter/Setel/Buka video/Tar] [lagu ...] [di spotify / youtube music / youtube]"
   const playMatch = clean.match(
-    /^(?:tolong\s+)?(putar|puter|puterin|putarkan|setel|stel|mainkan|buka\s+video|buka\s+lagu|buka\s+musik)\s+(.+)$/i
+    /^(?:tolong\s+)?(tar|tarkan|putar|puter|puterin|putarkan|setel|stel|stelin|mainkan|mainin|dengerin|dengarkan|buka\s+video|buka\s+lagu|buka\s+musik)\s+(.+)$/i
   )
   if (playMatch) {
     let body = playMatch[2].trim()
@@ -1464,10 +1527,10 @@ function tryReconstructSearchOrPlay(clause: string): NormalizedSentenceResult | 
       )
       platformSuffix = ' di YouTube Music'
     } else if (
-      /\bdi\s+(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi)$/i.test(body)
+      /\bdi\s+(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi|potifai|potify|potipai)$/i.test(body)
     ) {
       body = body.replace(
-        /\s*\bdi\s+(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi)$/i,
+        /\s*\bdi\s+(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|sepotifai|sportivi|potifai|potify|potipai)$/i,
         ''
       )
       platformSuffix = ' di Spotify'
@@ -1475,7 +1538,10 @@ function tryReconstructSearchOrPlay(clause: string): NormalizedSentenceResult | 
       body = body.replace(/\s*\bdi\s+(?:youtube|yutub|yutup|utub|utuk|yt)$/i, '')
       platformSuffix = ' di YouTube'
     }
-    const cleanTitle = body.replace(/^(?:lagu|musik|video)\s+/i, '').trim() || body.trim()
+    const cleanTitle = body
+      .replace(/^(?:lagu|musik|musiknya|lagunya|video|videonya)\s+/i, '')
+      .replace(/^[,\s.:;!-]+|[,\s.:;!-]+$/g, '')
+      .trim() || body.trim()
     const sentence = `Putar ${cleanTitle}${platformSuffix}`
     return {
       original: clause,
@@ -1632,18 +1698,33 @@ export function normalizeSpokenSentence(
     .trim()
 
   const inputWords = cleanLower.split(' ').filter(Boolean)
+  const strippedLower = cleanLower
+    .replace(/^(?:terus|lalu|dan|coba|tolong|mohon|eh|bisa|mau|pengen|tolongin)\s+/i, '')
+    .trim()
+  const strippedWords = strippedLower.split(' ').filter(Boolean)
 
   // 2. Match against Canonical Whole-Sentence Bank (high-confidence whole-sentence snapping)
   let bestCanonical: { sentence: string; score: number } | null = null
   for (const entry of CANONICAL_SENTENCES) {
     for (const variant of entry.variants) {
       const varWords = variant.split(' ').filter(Boolean)
-      if (Math.abs(inputWords.length - varWords.length) > 2) continue
 
-      const sim = phoneticSimilarity(cleanLower, variant)
-      const minScore = varWords.length === 1 ? 0.86 : 0.76
-      if (sim >= minScore && (!bestCanonical || sim > bestCanonical.score)) {
-        bestCanonical = { sentence: entry.canonical, score: sim }
+      // Test against cleanLower
+      if (Math.abs(inputWords.length - varWords.length) <= 2) {
+        const sim = phoneticSimilarity(cleanLower, variant)
+        const minScore = varWords.length === 1 ? 0.86 : 0.76
+        if (sim >= minScore && (!bestCanonical || sim > bestCanonical.score)) {
+          bestCanonical = { sentence: entry.canonical, score: sim }
+        }
+      }
+
+      // Also test against strippedLower (ignoring conversational leading particles like "terus", "bisa", "tolong")
+      if (strippedLower !== cleanLower && Math.abs(strippedWords.length - varWords.length) <= 2) {
+        const sim = phoneticSimilarity(strippedLower, variant)
+        const minScore = varWords.length === 1 ? 0.86 : 0.76
+        if (sim >= minScore && (!bestCanonical || sim > bestCanonical.score)) {
+          bestCanonical = { sentence: entry.canonical, score: sim }
+        }
       }
     }
   }

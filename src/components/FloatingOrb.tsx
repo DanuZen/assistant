@@ -509,41 +509,17 @@ export const FloatingOrb: React.FC = () => {
       lastSeenSongKeyRef.current = songKey
       setLyricLineIdx(-1)
 
-      // Slide character UP when a song with lyrics plays (unless user manually hid during this song)
-      if (
-        manuallySlidDownSongRef.current !== songKey &&
-        (mediaState.source === 'Spotify' ||
-          mediaState.source === 'YouTube Music' ||
-          mediaState.lyricsStatus === 'ready')
-      ) {
+      // Slide character UP when any song plays (unless user manually hid during this song)
+      if (manuallySlidDownSongRef.current !== songKey && mediaState.active) {
         setIsSlidDown(false)
       }
     }
 
-    // Also slide up if YouTube finished resolving synced lyrics for the active song
-    if (
-      mediaState.lyricsStatus === 'ready' &&
-      mediaState.lyrics.length > 0 &&
-      manuallySlidDownSongRef.current !== songKey &&
-      settings?.autoHideMascot
-    ) {
-      setIsSlidDown(false)
-    }
-
     if (mediaState.lyricsStatus === 'not-found') {
-      if (mediaState.source === 'Spotify' || mediaState.source === 'YouTube Music') {
-        setShowNoLyricIntro(true)
-        if (noLyricTimerRef.current) window.clearTimeout(noLyricTimerRef.current)
-        noLyricTimerRef.current = window.setTimeout(() => {
-          setShowNoLyricIntro(false)
-        }, 7000)
-      } else {
-        setShowNoLyricIntro(false)
-      }
+      setLyricLineIdx(-1)
       return
     }
 
-    setShowNoLyricIntro(false)
     if (mediaState.lyricsStatus !== 'ready' || mediaState.lyrics.length === 0) {
       setLyricLineIdx(-1)
       return
@@ -708,11 +684,10 @@ export const FloatingOrb: React.FC = () => {
   let shouldShowSingingBubble = false
 
   if (isMediaActive && mediaState && !isAssistantBusy) {
-    if (mediaState.lyricsStatus === 'loading' && mediaState.source !== 'YouTube') {
-      shouldShowSingingBubble = true
+    shouldShowSingingBubble = true
+    if (mediaState.lyricsStatus === 'loading') {
       singingLyricMain = `Menyiapkan lirik "${mediaState.cleanTitle}"...`
     } else if (mediaState.lyricsStatus === 'ready' && mediaState.lyrics.length > 0) {
-      shouldShowSingingBubble = true
       if (lyricLineIdx < 0) {
         singingLyricMain = `${mediaState.cleanTitle}${
           mediaState.cleanArtist ? ` — ${mediaState.cleanArtist}` : ''
@@ -726,18 +701,15 @@ export const FloatingOrb: React.FC = () => {
           singingLyricNext = nxt
         }
       }
-    } else if (mediaState.lyricsStatus === 'not-found' && showNoLyricIntro) {
-      shouldShowSingingBubble = true
-      singingLyricMain = `Sedang memutar "${mediaState.cleanTitle}"`
+    } else {
+      // Synced lyrics not available (e.g. YouTube clip, live track, local indie) — display title & artist!
+      singingLyricMain = mediaState.cleanTitle
+      singingLyricNext = mediaState.cleanArtist || mediaState.source
     }
   }
 
-  const isGroovingMusic =
-    isMediaActive &&
-    !isAssistantBusy &&
-    (mediaState?.source === 'Spotify' ||
-      mediaState?.source === 'YouTube Music' ||
-      mediaState?.lyricsStatus === 'ready')
+  // Dann vibes and grooves with headphones whenever any media is playing!
+  const isGroovingMusic = isMediaActive && !isAssistantBusy
 
   // Wear headphones pose automatically when vibing/singing along to music!
   const activePose =
@@ -758,13 +730,14 @@ export const FloatingOrb: React.FC = () => {
     const timeoutMs = minutes * 60_000
 
     const interval = window.setInterval(() => {
-      // Keep character awake while conversing, right-click menu is open, or actively singing lyrics
+      // Keep character awake while conversing, right-click menu is open, or actively playing music/lyrics
       const busyNow =
         orbStatus === 'awake' ||
         orbStatus === 'thinking' ||
         orbStatus === 'speaking' ||
         orbStatus === 'alert' ||
         contextMenuOpen ||
+        isMediaActive ||
         shouldShowSingingBubble
 
       if (busyNow) {
@@ -784,6 +757,7 @@ export const FloatingOrb: React.FC = () => {
     settings?.autoHideMinutes,
     orbStatus,
     contextMenuOpen,
+    isMediaActive,
     shouldShowSingingBubble,
     slideDownAndLeave
   ])

@@ -260,7 +260,7 @@ export class AssistantBrain {
     }
 
     if (
-      /\b(tanggal berapa|hari apa sekarang|hari ini hari apa|hari ini tanggal berapa|sekarang tanggal berapa)\b/.test(
+      /\b(tanggal berapa|tanggal apa|hari apa sekarang|hari ini hari apa|hari ini tanggal|sekarang tanggal|lihat tanggal)\b/i.test(
         lower
       )
     ) {
@@ -368,10 +368,14 @@ export class AssistantBrain {
 
     // 7a. Buka / Putar Lagu Langsung di Spotify
     const spotifyPlayMatch = text.match(
-      /^(?:tolong\s+)?(?:putar|putarkan|stel|setel|mainkan|cari|buka(?:\s+(?:musik|lagu))?)[\s,:;.!-]+(.+?)\s+(?:di\s+)?(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi)$/i
+      /^(?:tolong\s+)?(?:putar|putarkan|stel|setel|mainkan|cari|buka(?:\s+(?:musik|lagu))?)[\s,:;.!-]+(.+?)\s+(?:di\s+)?(?:spotify|sopotify|sportyfy|sportify|spotifai|spotifi|potifai|potify|potipai|sepotifai)$/i
     )
-    if (spotifyPlayMatch && spotifyPlayMatch[1]) {
-      const query = spotifyPlayMatch[1].replace(/^(?:lagu|musik|musiknya|lagunya)\s+/i, '').trim()
+    const spotifyPlatformFirstMatch = text.match(
+      /^(?:spotify|sopotify|potifai|potify|sportyfy|sportify|spotifai|spotifi|potipai|sepotifai)\s+(?:tolong\s+)?(?:putar|putarkan|setel|stel|mainkan|buka|cari)?\s*(?:lagu|musik|musiknya)?\s*(.+)$/i
+    )
+    const spMatchFinal = spotifyPlayMatch || spotifyPlatformFirstMatch
+    if (spMatchFinal && spMatchFinal[1]) {
+      const query = spMatchFinal[1].replace(/^(?:lagu|musik|musiknya|lagunya)\s+/i, '').trim()
       const spRes = await playSpotifyDirect(query)
       return {
         reply:
@@ -427,7 +431,7 @@ export class AssistantBrain {
     // 7d. Putar lagu / video langsung tanpa harus menyebut "di YouTube"
     // Catatan: "nyalakan" hanya dihitung sebagai perintah musik jika diikuti kata "musik" atau "lagu"!
     const playMusicMatch = text.match(
-      /^(?:tolong\s+)?(?:(?:putar|putarkan|stel|setel|mainkan|buka\s+video|buka\s+lagu)[\s,:;.!-]+(?:lagu|musik|video)?\s*(.*)|nyalakan\s+(?:musik|lagu)\s*(.*))$/i
+      /^(?:tolong\s+)?(?:(?:tar|putar|putarkan|stel|setel|mainkan|dengerin|dengarkan|buka\s+video|buka\s+lagu)[\s,:;.!-]+(?:lagu|musik|video)?\s*(.*)|nyalakan\s+(?:musik|lagu)\s*(.*))$/i
     )
     if (playMusicMatch) {
       const rawSong = playMusicMatch[1] ?? playMusicMatch[2] ?? ''
